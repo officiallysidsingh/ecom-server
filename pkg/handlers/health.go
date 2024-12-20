@@ -1,12 +1,11 @@
 package handlers
 
 import (
-	"encoding/json"
 	"net/http"
+
+	"github.com/officiallysidsingh/ecom-server/pkg/utils"
 )
 
 func Health(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	json.NewEncoder(w).Encode("Server is Live and Running!!")
+	utils.RespondWithJSON(w, http.StatusOK, "Server is Live and Running!!")
 }
