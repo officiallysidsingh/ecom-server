@@ -3,23 +3,36 @@ package store
 import (
 	"log"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/officiallysidsingh/ecom-server/db"
+	"github.com/officiallysidsingh/ecom-server/internal/models"
 )
 
-var db *sqlx.DB
+func GetAllProductsFromDB() ([]models.Product, error) {
+	var products []models.Product
 
-type Product struct {
-	ID    int     `json:"id"`
-	Name  string  `json:"name"`
-	Price float64 `json:"price"`
-}
+	query := `SELECT product_id, name, description, price, stock, created_at, updated_at
+			  FROM products`
 
-func GetAllProducts() ([]Product, error) {
-	var products []Product
-	err := db.Select(&products, "SELECT id, name, price FROM products")
+	err := db.DB.Select(&products, query)
 	if err != nil {
 		log.Printf("Error fetching products: %v", err)
 		return nil, err
 	}
 	return products, nil
+}
+
+func GetProductByIdFromDB(productID int) (*models.Product, error) {
+	var product models.Product
+
+	query := `SELECT product_id, name, description, price, stock, created_at, updated_at
+              FROM products
+              WHERE product_id = $1`
+
+	err := db.DB.Get(&product, query, productID)
+	if err != nil {
+		log.Printf("Error fetching product with ID %d: %v", productID, err)
+		return nil, err
+	}
+
+	return &product, nil
 }

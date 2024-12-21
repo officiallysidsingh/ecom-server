@@ -30,6 +30,7 @@ func main() {
 	if err := db.InitDB(appConfig.DATABASE_URL); err != nil {
 		log.Fatalf("Error initializing the database: %v", err)
 	}
+
 	// Close DB connection on shutdown
 	defer db.CloseDB()
 
@@ -45,7 +46,10 @@ func main() {
 	r.Get("/", handlers.Health)
 
 	// Product Routes
-	r.Get("/products", handlers.GetProducts)
+	r.Route("/products", func(r chi.Router) {
+		r.Get("/", handlers.GetAllProducts)
+		r.Get("/{id}", handlers.GetProductById)
+	})
 
 	// Start server with graceful shutdown
 	startServerWithGracefulShutdown(r, appConfig.SERVER_PORT)
