@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/officiallysidsingh/ecom-server/pkg/store"
-	"github.com/officiallysidsingh/ecom-server/pkg/utils"
+	"github.com/officiallysidsingh/ecom-server/internal/store"
+	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
 func GetProducts(w http.ResponseWriter, r *http.Request) {

@@ -1,4 +1,4 @@
-package database
+package db
 
 import (
 	"fmt"
@@ -9,30 +9,33 @@ import (
 )
 
 // Global variable to store the database connection
-var DB *sqlx.DB
+var db *sqlx.DB
 
-// InitDB initializes the database connection.
+// Init the DB connection.
 func InitDB(connStr string) error {
-	// Open a connection to the database
 	var err error
-	DB, err = sqlx.Connect("postgres", connStr)
+
+	// Open a connection to the database
+	db, err = sqlx.Open("postgres", connStr)
 	if err != nil {
 		return fmt.Errorf("unable to connect to database: %w", err)
 	}
 
 	// Check if the database is reachable
-	if err := DB.Ping(); err != nil {
+	if err := db.Ping(); err != nil {
 		return fmt.Errorf("unable to ping the database: %w", err)
 	}
 
-	log.Println("Successfully connected to the database")
-
+	log.Println("DB Connected Successfully!!")
 	return nil
 }
 
-// CloseDB closes the database connection
+// Close the DB connection
 func CloseDB() {
-	if err := DB.Close(); err != nil {
-		log.Printf("Error closing database connection: %v", err)
+	if db != nil {
+		if err := db.Close(); err != nil {
+			log.Printf("Error closing database connection: %v", err)
+		}
+		log.Println("DB Connection Closed Successfully!!")
 	}
 }
