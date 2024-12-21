@@ -21,7 +21,7 @@ func GetAllProductsFromDB() ([]models.Product, error) {
 	return products, nil
 }
 
-func GetProductByIdFromDB(productID int) (*models.Product, error) {
+func GetProductByIdFromDB(productID string) (*models.Product, error) {
 	var product models.Product
 
 	query := `SELECT product_id, name, description, price, stock, created_at, updated_at
@@ -30,7 +30,7 @@ func GetProductByIdFromDB(productID int) (*models.Product, error) {
 
 	err := db.DB.Get(&product, query, productID)
 	if err != nil {
-		log.Printf("Error fetching product with ID %d: %v", productID, err)
+		log.Printf("Error fetching product with ID %s: %v", productID, err)
 		return nil, err
 	}
 
