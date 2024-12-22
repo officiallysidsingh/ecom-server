@@ -16,7 +16,7 @@ func GetAllProductsFromDB() ([]models.Product, error) {
 
 	err := db.DB.Select(&products, query)
 	if err != nil {
-		log.Printf("Error fetching products: %v", err)
+		log.Printf("Error fetching products from DB: %v", err)
 		return nil, err
 	}
 	return products, nil
@@ -32,7 +32,7 @@ func GetProductByIdFromDB(productID string) (*models.Product, error) {
 
 	err := db.DB.Get(&product, query, productID)
 	if err != nil {
-		log.Printf("Error fetching product with ID %s: %v", productID, err)
+		log.Printf("Error fetching product from DB with ID %s: %v", productID, err)
 		return nil, err
 	}
 
@@ -49,10 +49,28 @@ func AddProductToDB(product *models.Product) (string, error) {
 	var productID string
 	err := db.DB.Get(&productID, query, product.Name, product.Description, product.Price, product.Stock)
 	if err != nil {
-		log.Printf("Error inserting product: %v", err)
+		log.Printf("Error inserting product in DB: %v", err)
 		return "", err
 	}
 
 	// Return the product ID
 	return productID, nil
+}
+
+func PutUpdateProductInDB(product *models.Product, productID string) error {
+	// SQL query to update a product
+	query := `UPDATE PRODUCTS
+			  SET name=$1, description=$2, price=$3, stock=$4, updated_at = CURRENT_TIMESTAMP
+			  WHERE product_id = $5
+			  RETURNING product_id`
+
+	// Execute the query and get the product ID
+	err := db.DB.Get(&productID, query, product.Name, product.Description, product.Price, product.Stock, productID)
+	if err != nil {
+		log.Printf("Error updating product in DB: %v", err)
+		return err
+	}
+
+	// Return the product ID
+	return nil
 }

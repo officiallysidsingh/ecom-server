@@ -50,6 +50,7 @@ func main() {
 		r.Get("/", handlers.GetAllProducts)
 		r.Get("/{id}", handlers.GetProductById)
 		r.Post("/", handlers.AddProduct)
+		r.Put("/{id}", handlers.PutUpdateProduct)
 	})
 
 	// Start server with graceful shutdown
