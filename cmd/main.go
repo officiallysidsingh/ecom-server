@@ -49,6 +49,7 @@ func main() {
 	r.Route("/products", func(r chi.Router) {
 		r.Get("/", handlers.GetAllProducts)
 		r.Get("/{id}", handlers.GetProductById)
+		r.Post("/", handlers.AddProduct)
 	})
 
 	// Start server with graceful shutdown
