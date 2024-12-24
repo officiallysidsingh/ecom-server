@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -38,14 +37,15 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 func AddProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 
-	// Decode Product from JSON to Struct
-	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+	// Decode Product from Request Body to Struct
+	errMessage, statusCode, err := utils.ParseBodyToJSON(w, r, &product)
+	if err != nil {
 		log.Printf("Error decoding product data: %v", err)
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid product data")
+		utils.RespondWithError(w, statusCode, errMessage)
 		return
 	}
 
-	// Call the function to add the product to the database
+	// Call the function to add the product in DB
 	productID, err := store.AddProductToDB(&product)
 	if err != nil {
 		log.Printf("Error adding product: %v", err)
@@ -61,24 +61,25 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 func PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 
-	// Get Product ID from URL
+	// Get ProductID from URL
 	productID := chi.URLParam(r, "id")
 
-	// Decode Product from JSON to Struct
-	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+	// Decode Product from Request Body to Struct
+	errMessage, statusCode, err := utils.ParseBodyToJSON(w, r, &product)
+	if err != nil {
 		log.Printf("Error decoding product data: %v", err)
-		utils.RespondWithError(w, http.StatusBadRequest, "Invalid product data")
+		utils.RespondWithError(w, statusCode, errMessage)
 		return
 	}
 
-	// Call the function to add the product to the database
+	// Call the function to add the product in DB
 	if err := store.PutUpdateProductInDB(&product, productID); err != nil {
-		log.Printf("Error updating product: %v", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to update product")
+		log.Printf("Error updating product (ID: %s): %v", productID, err)
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	// Returning successful response
 	res := fmt.Sprintf("Product with id: %s updated successfully", productID)
-	utils.RespondWithJSON(w, http.StatusCreated, map[string]string{"message": res})
+	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
 }
