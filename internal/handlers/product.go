@@ -83,3 +83,29 @@ func PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	res := fmt.Sprintf("Product with id: %s updated successfully", productID)
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
 }
+
+func PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
+	var product models.Product
+
+	// Get ProductID from URL
+	productID := chi.URLParam(r, "id")
+
+	// Decode Product from JSON to Struct
+	errMessage, statusCode, err := utils.ParseBodyToJSON(w, r, &product)
+	if err != nil {
+		log.Printf("Error decoding product data: %v", err)
+		utils.RespondWithError(w, statusCode, errMessage)
+		return
+	}
+
+	// Call the function to update the product in DB
+	if err := store.PatchUpdateProductInDB(&product, productID); err != nil {
+		log.Printf("Error updating product (ID: %s): %v", productID, err)
+		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to update product")
+		return
+	}
+
+	// Returning successful response
+	res := fmt.Sprintf("Product with id: %s updated successfully", productID)
+	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
+}

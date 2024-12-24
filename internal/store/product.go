@@ -176,3 +176,71 @@ func PutUpdateProductInDB(product *models.Product, productID string) error {
 	log.Printf("Product with ID %s updated successfully", updatedProductID)
 	return nil
 }
+
+func PatchUpdateProductInDB(product *models.Product, productID string) error {
+	// Begin a transaction to ensure atomicity
+	tx, err := db.DB.Beginx()
+	if err != nil {
+		log.Printf("Error starting transaction: %v", err)
+		return fmt.Errorf("failed to start database transaction: %w", err)
+	}
+
+	// Ensure transaction is properly rolled back in case of failure
+	defer func() {
+		if err != nil {
+			// If error occurs, we rollback the transaction
+			if rollbackErr := tx.Rollback(); rollbackErr != nil {
+				log.Printf("Error rolling back transaction: %v", rollbackErr)
+			}
+		}
+	}()
+
+	// SQL query to update a product using COALESCE
+	query := `
+		UPDATE PRODUCTS
+		SET
+			name = COALESCE(NULLIF($1, ''), name),
+			description = COALESCE(NULLIF($2, ''), description),
+			price = COALESCE(NULLIF($3, 0), price),
+			stock = COALESCE(NULLIF($4, 0), stock),
+			updated_at = CURRENT_TIMESTAMP
+		WHERE product_id = $5
+		RETURNING product_id
+	`
+
+	fields := []interface{}{
+		product.Name,
+		product.Description,
+		product.Price,
+		product.Stock,
+		productID,
+	}
+
+	// Variable to capture the updated product ID
+	var updatedProductID string
+	if err := utils.ExecGetTransactionQuery(
+		tx,
+		query,
+		fields,
+		&updatedProductID,
+	); err != nil {
+		// If no rows affected (Product Not Found)
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("Product with ID %s not found", productID)
+			return fmt.Errorf("product with ID %s not found", productID)
+		}
+		// General error
+		log.Printf("Error updating product in DB: %v", err)
+		return fmt.Errorf("failed to update product with ID %s: %w", productID, err)
+	}
+
+	// Commit the transaction if update was successful
+	if err := tx.Commit(); err != nil {
+		log.Printf("Error committing transaction for product with ID %s: %v", productID, err)
+		return fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	// Log the success and return the updated product ID
+	log.Printf("Product with ID %s updated successfully", updatedProductID)
+	return nil
+}
