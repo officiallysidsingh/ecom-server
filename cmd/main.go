@@ -52,6 +52,7 @@ func main() {
 		r.Post("/", handlers.AddProduct)
 		r.Put("/{id}", handlers.PutUpdateProduct)
 		r.Patch("/{id}", handlers.PatchUpdateProduct)
+		r.Delete("/{id}", handlers.DeleteProduct)
 	})
 
 	// Start server with graceful shutdown

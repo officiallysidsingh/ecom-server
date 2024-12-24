@@ -109,3 +109,19 @@ func PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	res := fmt.Sprintf("Product with id: %s updated successfully", productID)
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
 }
+
+func DeleteProduct(w http.ResponseWriter, r *http.Request) {
+	// Get ProudctID from URL
+	productID := chi.URLParam(r, "id")
+
+	// Call the function to delete the product in DB
+	if err := store.DeleteProductInDB(productID); err != nil {
+		log.Printf("Error updating product (ID: %s): %v", productID, err.Error())
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Returning successful response
+	res := fmt.Sprintf("Product with id: %s deleted successfully", productID)
+	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
+}
