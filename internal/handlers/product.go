@@ -14,7 +14,7 @@ import (
 func GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	products, err := store.GetAllProductsFromDB()
 	if err != nil {
-		utils.RespondWithError(w, http.StatusInternalServerError, "Error fetching products")
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -27,7 +27,7 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 
 	product, err := store.GetProductByIdFromDB(productID)
 	if err != nil {
-		utils.RespondWithError(w, http.StatusNotFound, "Product Not Found")
+		utils.RespondWithError(w, http.StatusNotFound, err.Error())
 		return
 	}
 
@@ -48,8 +48,8 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 	// Call the function to add the product in DB
 	productID, err := store.AddProductToDB(&product)
 	if err != nil {
-		log.Printf("Error adding product: %v", err)
-		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to add product")
+		log.Printf("Error adding product: %v", err.Error())
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -74,7 +74,7 @@ func PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	// Call the function to add the product in DB
 	if err := store.PutUpdateProductInDB(&product, productID); err != nil {
-		log.Printf("Error updating product (ID: %s): %v", productID, err)
+		log.Printf("Error updating product (ID: %s): %v", productID, err.Error())
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -100,8 +100,8 @@ func PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	// Call the function to update the product in DB
 	if err := store.PatchUpdateProductInDB(&product, productID); err != nil {
-		log.Printf("Error updating product (ID: %s): %v", productID, err)
-		utils.RespondWithError(w, http.StatusInternalServerError, "Failed to update product")
+		log.Printf("Error updating product (ID: %s): %v", productID, err.Error())
+		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 
