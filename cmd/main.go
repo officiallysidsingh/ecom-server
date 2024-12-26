@@ -15,6 +15,8 @@ import (
 	"github.com/officiallysidsingh/ecom-server/db"
 	"github.com/officiallysidsingh/ecom-server/internal/config"
 	"github.com/officiallysidsingh/ecom-server/internal/handlers"
+	"github.com/officiallysidsingh/ecom-server/internal/services"
+	"github.com/officiallysidsingh/ecom-server/internal/store"
 )
 
 func main() {
@@ -27,12 +29,18 @@ func main() {
 	appConfig := config.LoadConfig()
 
 	// Init DB connection
-	if err := db.InitDB(appConfig.DATABASE_URL); err != nil {
+	dbConn, err := db.InitDB(appConfig.DATABASE_URL)
+	if err != nil {
 		log.Fatalf("Error initializing the database: %v", err)
 	}
 
 	// Close DB connection on shutdown
-	defer db.CloseDB()
+	defer db.CloseDB(dbConn)
+
+	// Initialize dependencies
+	productStore := store.NewProductStore(dbConn)
+	productService := services.NewProductService(productStore)
+	productHandler := handlers.NewProductHandler(productService)
 
 	// Set up router
 	r := chi.NewRouter()
@@ -47,13 +55,18 @@ func main() {
 
 	// Product Routes
 	r.Route("/products", func(r chi.Router) {
-		r.Get("/", handlers.GetAllProducts)
-		r.Get("/{id}", handlers.GetProductById)
-		r.Post("/", handlers.AddProduct)
-		r.Put("/{id}", handlers.PutUpdateProduct)
-		r.Patch("/{id}", handlers.PatchUpdateProduct)
-		r.Delete("/{id}", handlers.DeleteProduct)
+		r.Get("/", productHandler.GetAllProducts)
+		r.Get("/{id}", productHandler.GetProductById)
+		r.Post("/", productHandler.AddProduct)
+		r.Put("/{id}", productHandler.PutUpdateProduct)
+		r.Patch("/{id}", productHandler.PatchUpdateProduct)
+		r.Delete("/{id}", productHandler.DeleteProduct)
 	})
+
+	// // User Routes
+	// r.Route("/user", func(r chi.Router) {
+	// 	r.Post("/login", handlers.)
+	// })
 
 	// Start server with graceful shutdown
 	startServerWithGracefulShutdown(r, appConfig.SERVER_PORT)

@@ -1,17 +1,29 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"log"
 
-	"github.com/officiallysidsingh/ecom-server/db"
+	"github.com/jmoiron/sqlx"
+	"github.com/officiallysidsingh/ecom-server/internal/interfaces"
 	"github.com/officiallysidsingh/ecom-server/internal/models"
 	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
-func GetAllProductsFromDB() ([]models.Product, error) {
+type ProductStore struct {
+	db *sqlx.DB
+}
+
+func NewProductStore(db *sqlx.DB) interfaces.ProductStore {
+	return &ProductStore{
+		db: db,
+	}
+}
+
+func (s *ProductStore) GetAllFromDB(ctx context.Context) ([]models.Product, error) {
 	var products []models.Product
 
 	// SQL query to get all products
@@ -20,7 +32,12 @@ func GetAllProductsFromDB() ([]models.Product, error) {
 		FROM products
 	`
 
-	if err := utils.ExecSelectQuery(query, nil, &products); err != nil {
+	if err := utils.ExecSelectQuery(
+		s.db,
+		query,
+		nil,
+		&products,
+	); err != nil {
 		log.Printf("Error fetching products from DB: %v", err)
 		return nil, err
 	}
@@ -28,7 +45,7 @@ func GetAllProductsFromDB() ([]models.Product, error) {
 	return products, nil
 }
 
-func GetProductByIdFromDB(productID string) (*models.Product, error) {
+func (s *ProductStore) GetByIDFromDB(ctx context.Context, productID string) (*models.Product, error) {
 	var product models.Product
 
 	// SQL query to get a product by id
@@ -42,7 +59,12 @@ func GetProductByIdFromDB(productID string) (*models.Product, error) {
 		productID,
 	}
 
-	if err := utils.ExecGetQuery(query, fields, &product); err != nil {
+	if err := utils.ExecGetQuery(
+		s.db,
+		query,
+		fields,
+		&product,
+	); err != nil {
 		// If no rows found
 		if errors.Is(err, sql.ErrNoRows) {
 			log.Printf("Product with ID %s not found", productID)
@@ -55,9 +77,9 @@ func GetProductByIdFromDB(productID string) (*models.Product, error) {
 	return &product, nil
 }
 
-func AddProductToDB(product *models.Product) (string, error) {
+func (s *ProductStore) CreateInDB(ctx context.Context, product *models.Product) (string, error) {
 	// Begin a transaction to ensure atomicity
-	tx, err := db.DB.Beginx()
+	tx, err := s.db.Beginx()
 	if err != nil {
 		log.Printf("Error starting transaction: %v", err)
 		return "", fmt.Errorf("failed to start database transaction: %w", err)
@@ -89,6 +111,7 @@ func AddProductToDB(product *models.Product) (string, error) {
 	// Execute the query and return the added product ID
 	var productID string
 	if err = utils.ExecGetTransactionQuery(
+		s.db,
 		tx,
 		query,
 		fields,
@@ -114,9 +137,9 @@ func AddProductToDB(product *models.Product) (string, error) {
 	return productID, nil
 }
 
-func PutUpdateProductInDB(product *models.Product, productID string) error {
+func (s *ProductStore) PutUpdateInDB(ctx context.Context, product *models.Product, productID string) error {
 	// Begin a transaction to ensure atomicity
-	tx, err := db.DB.Beginx()
+	tx, err := s.db.Beginx()
 	if err != nil {
 		log.Printf("Error starting transaction: %v", err)
 		return fmt.Errorf("failed to start database transaction: %w", err)
@@ -151,6 +174,7 @@ func PutUpdateProductInDB(product *models.Product, productID string) error {
 	// Execute the query and return the update product ID
 	var updatedProductID string
 	if err := utils.ExecGetTransactionQuery(
+		s.db,
 		tx,
 		query,
 		fields,
@@ -177,9 +201,9 @@ func PutUpdateProductInDB(product *models.Product, productID string) error {
 	return nil
 }
 
-func PatchUpdateProductInDB(product *models.Product, productID string) error {
+func (s *ProductStore) PatchUpdateInDB(ctx context.Context, product *models.Product, productID string) error {
 	// Begin a transaction to ensure atomicity
-	tx, err := db.DB.Beginx()
+	tx, err := s.db.Beginx()
 	if err != nil {
 		log.Printf("Error starting transaction: %v", err)
 		return fmt.Errorf("failed to start database transaction: %w", err)
@@ -219,6 +243,7 @@ func PatchUpdateProductInDB(product *models.Product, productID string) error {
 	// Execute the query and return the updated product ID
 	var updatedProductID string
 	if err := utils.ExecGetTransactionQuery(
+		s.db,
 		tx,
 		query,
 		fields,
@@ -245,9 +270,9 @@ func PatchUpdateProductInDB(product *models.Product, productID string) error {
 	return nil
 }
 
-func DeleteProductInDB(productID string) error {
+func (s *ProductStore) DeleteFromDB(ctx context.Context, productID string) error {
 	// Begin a transaction to ensure atomicity
-	tx, err := db.DB.Beginx()
+	tx, err := s.db.Beginx()
 	if err != nil {
 		log.Printf("Error starting transaction: %v", err)
 		return fmt.Errorf("failed to start database transaction: %w", err)
@@ -276,6 +301,7 @@ func DeleteProductInDB(productID string) error {
 	// Execute the query and return the deleted product ID
 	var deletedProductID string
 	if err := utils.ExecGetTransactionQuery(
+		s.db,
 		tx,
 		query,
 		fields,

@@ -6,13 +6,23 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/officiallysidsingh/ecom-server/internal/interfaces"
 	"github.com/officiallysidsingh/ecom-server/internal/models"
-	"github.com/officiallysidsingh/ecom-server/internal/store"
 	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
-func GetAllProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := store.GetAllProductsFromDB()
+type ProductHandler struct {
+	service interfaces.ProductService
+}
+
+func NewProductHandler(service interfaces.ProductService) *ProductHandler {
+	return &ProductHandler{
+		service: service,
+	}
+}
+
+func (h *ProductHandler) GetAllProducts(w http.ResponseWriter, r *http.Request) {
+	products, err := h.service.GetAll(r.Context())
 	if err != nil {
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -21,11 +31,10 @@ func GetAllProducts(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, products)
 }
 
-func GetProductById(w http.ResponseWriter, r *http.Request) {
-	// Get Product ID from URL
+func (h *ProductHandler) GetProductById(w http.ResponseWriter, r *http.Request) {
 	productID := chi.URLParam(r, "id")
 
-	product, err := store.GetProductByIdFromDB(productID)
+	product, err := h.service.GetByID(r.Context(), productID)
 	if err != nil {
 		utils.RespondWithError(w, http.StatusNotFound, err.Error())
 		return
@@ -34,7 +43,7 @@ func GetProductById(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, product)
 }
 
-func AddProduct(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) AddProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 
 	// Decode Product from Request Body to Struct
@@ -45,8 +54,7 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Call the function to add the product in DB
-	productID, err := store.AddProductToDB(&product)
+	productID, err := h.service.Create(r.Context(), &product)
 	if err != nil {
 		log.Printf("Error adding product: %v", err.Error())
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
@@ -58,7 +66,7 @@ func AddProduct(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusCreated, map[string]string{"message": res})
 }
 
-func PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 
 	// Get ProductID from URL
@@ -73,7 +81,7 @@ func PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call the function to add the product in DB
-	if err := store.PutUpdateProductInDB(&product, productID); err != nil {
+	if err := h.service.PutUpdate(r.Context(), &product, productID); err != nil {
 		log.Printf("Error updating product (ID: %s): %v", productID, err.Error())
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -84,7 +92,7 @@ func PutUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
 }
 
-func PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	var product models.Product
 
 	// Get ProductID from URL
@@ -99,7 +107,7 @@ func PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Call the function to update the product in DB
-	if err := store.PatchUpdateProductInDB(&product, productID); err != nil {
+	if err := h.service.PatchUpdate(r.Context(), &product, productID); err != nil {
 		log.Printf("Error updating product (ID: %s): %v", productID, err.Error())
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -110,12 +118,12 @@ func PatchUpdateProduct(w http.ResponseWriter, r *http.Request) {
 	utils.RespondWithJSON(w, http.StatusOK, map[string]string{"message": res})
 }
 
-func DeleteProduct(w http.ResponseWriter, r *http.Request) {
+func (h *ProductHandler) DeleteProduct(w http.ResponseWriter, r *http.Request) {
 	// Get ProudctID from URL
 	productID := chi.URLParam(r, "id")
 
 	// Call the function to delete the product in DB
-	if err := store.DeleteProductInDB(productID); err != nil {
+	if err := h.service.Delete(r.Context(), productID); err != nil {
 		log.Printf("Error updating product (ID: %s): %v", productID, err.Error())
 		utils.RespondWithError(w, http.StatusInternalServerError, err.Error())
 		return
