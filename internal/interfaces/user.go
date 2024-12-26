@@ -7,11 +7,11 @@ import (
 )
 
 type UserService interface {
-	Login(ctx context.Context, email string, password string) (*models.User, error)
+	Login(ctx context.Context, loginReq *models.LoginRequest) (*models.User, error)
 	Signup(ctx context.Context, user *models.User) (string, error)
 }
 
 type UserStore interface {
-	GetByEmailFromDB(ctx context.Context) ([]models.User, error)
+	GetByEmailFromDB(ctx context.Context, email string) (*models.User, error)
 	CreateInDB(ctx context.Context, user *models.User) (string, error)
 }

@@ -117,12 +117,7 @@ func (s *ProductStore) CreateInDB(ctx context.Context, product *models.Product) 
 		fields,
 		&productID,
 	); err != nil {
-		// If no rows found
-		if errors.Is(err, sql.ErrNoRows) {
-			log.Printf("Product with ID %s not found", productID)
-			return "", fmt.Errorf("product with ID %s not found", productID)
-		}
-		log.Printf("Error adding product with ID %s to DB: %v", productID, err)
+		log.Printf("Error adding product with Name %s to DB: %v", product.Name, err)
 		return "", err
 	}
 
