@@ -8,22 +8,26 @@ import (
 	"log"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/officiallysidsingh/ecom-server/internal/interfaces"
 	"github.com/officiallysidsingh/ecom-server/internal/models"
 	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
-type UserStore struct {
+type UserStore interface {
+	GetByEmailFromDB(ctx context.Context, email string) (*models.User, error)
+	CreateInDB(ctx context.Context, user *models.User) (string, error)
+}
+
+type userStore struct {
 	db *sqlx.DB
 }
 
-func NewUserStore(db *sqlx.DB) interfaces.UserStore {
-	return &UserStore{
+func NewUserStore(db *sqlx.DB) UserStore {
+	return &userStore{
 		db: db,
 	}
 }
 
-func (s *UserStore) GetByEmailFromDB(ctx context.Context, userEmail string) (*models.User, error) {
+func (s *userStore) GetByEmailFromDB(ctx context.Context, userEmail string) (*models.User, error) {
 	var user models.User
 
 	// SQL query to get user by email
@@ -55,7 +59,7 @@ func (s *UserStore) GetByEmailFromDB(ctx context.Context, userEmail string) (*mo
 	return &user, nil
 }
 
-func (s *UserStore) CreateInDB(ctx context.Context, user *models.User) (string, error) {
+func (s *userStore) CreateInDB(ctx context.Context, user *models.User) (string, error) {
 	// Begin a transaction to ensure atomicity
 	tx, err := s.db.Beginx()
 	if err != nil {

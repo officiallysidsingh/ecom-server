@@ -5,16 +5,16 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/officiallysidsingh/ecom-server/internal/interfaces"
 	"github.com/officiallysidsingh/ecom-server/internal/models"
+	"github.com/officiallysidsingh/ecom-server/internal/services"
 	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
 type UserHandler struct {
-	service interfaces.UserService
+	service services.UserService
 }
 
-func NewUserHandler(service interfaces.UserService) *UserHandler {
+func NewUserHandler(service services.UserService) *UserHandler {
 	return &UserHandler{
 		service: service,
 	}
