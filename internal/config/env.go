@@ -5,15 +5,17 @@ import (
 	"os"
 )
 
-type AppConfig struct {
+type EnvConfig struct {
 	DATABASE_URL string
 	SERVER_PORT  string
+	JWT_SECRET   string
 }
 
-func LoadConfig() *AppConfig {
-	return &AppConfig{
+func LoadEnvConfig() *EnvConfig {
+	return &EnvConfig{
 		DATABASE_URL: MustGetEnv("DATABASE_URL"),
 		SERVER_PORT:  MustGetEnv("SERVER_PORT"),
+		JWT_SECRET:   MustGetEnv("JWT_SECRET"),
 	}
 }
 

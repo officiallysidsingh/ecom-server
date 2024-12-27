@@ -22,10 +22,10 @@ func main() {
 	}
 
 	// Init Config
-	appConfig := config.LoadConfig()
+	envConfig := config.LoadEnvConfig()
 
 	// Init DB connection
-	dbConn, err := db.InitDB(appConfig.DATABASE_URL)
+	dbConn, err := db.InitDB(envConfig.DATABASE_URL)
 	if err != nil {
 		log.Fatalf("Error initializing the database: %v", err)
 	}
@@ -34,10 +34,10 @@ func main() {
 	defer db.CloseDB(dbConn)
 
 	// Setup Router & Middlewares
-	r := router.Setup(dbConn)
+	r := router.Setup(dbConn, envConfig)
 
 	// Start server with graceful shutdown
-	startServerWithGracefulShutdown(r, appConfig.SERVER_PORT)
+	startServerWithGracefulShutdown(r, envConfig.SERVER_PORT)
 }
 
 func startServerWithGracefulShutdown(handler http.Handler, port string) {
