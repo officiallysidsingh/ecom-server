@@ -14,6 +14,7 @@ import (
 
 type UserStore interface {
 	GetByEmailFromDB(ctx context.Context, email string) (*models.User, error)
+	GetByIdFromDB(ctx context.Context, userID string) (*models.User, error)
 	CreateInDB(ctx context.Context, user *models.User) (string, error)
 }
 
@@ -32,7 +33,7 @@ func (s *userStore) GetByEmailFromDB(ctx context.Context, userEmail string) (*mo
 
 	// SQL query to get user by email
 	query := `
-		SELECT user_id, name, email, role
+		SELECT user_id, name, email, password, role
 		FROM users
 		WHERE email = $1
 	`
@@ -53,6 +54,38 @@ func (s *userStore) GetByEmailFromDB(ctx context.Context, userEmail string) (*mo
 			return nil, fmt.Errorf("user with Email %s not found", userEmail)
 		}
 		log.Printf("Error fetching user with Email %s from DB: %v", userEmail, err)
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+func (s *userStore) GetByIdFromDB(ctx context.Context, userID string) (*models.User, error) {
+	var user models.User
+
+	// SQL query to get user by email
+	query := `
+		SELECT user_id, name, email, role
+		FROM users
+		WHERE user_id = $1
+	`
+
+	fields := []interface{}{
+		userID,
+	}
+
+	if err := utils.ExecGetQuery(
+		s.db,
+		query,
+		fields,
+		&user,
+	); err != nil {
+		// If no rows found
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("User with ID %s not found", userID)
+			return nil, fmt.Errorf("user with ID %s not found", userID)
+		}
+		log.Printf("Error fetching user with Email %s from DB: %v", userID, err)
 		return nil, err
 	}
 
