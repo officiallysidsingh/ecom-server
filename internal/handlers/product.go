@@ -6,16 +6,16 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/officiallysidsingh/ecom-server/internal/interfaces"
 	"github.com/officiallysidsingh/ecom-server/internal/models"
+	"github.com/officiallysidsingh/ecom-server/internal/services"
 	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
 type ProductHandler struct {
-	service interfaces.ProductService
+	service services.ProductService
 }
 
-func NewProductHandler(service interfaces.ProductService) *ProductHandler {
+func NewProductHandler(service services.ProductService) *ProductHandler {
 	return &ProductHandler{
 		service: service,
 	}

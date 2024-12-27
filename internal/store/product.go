@@ -8,22 +8,30 @@ import (
 	"log"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/officiallysidsingh/ecom-server/internal/interfaces"
 	"github.com/officiallysidsingh/ecom-server/internal/models"
 	"github.com/officiallysidsingh/ecom-server/internal/utils"
 )
 
-type ProductStore struct {
+type ProductStore interface {
+	GetAllFromDB(ctx context.Context) ([]models.Product, error)
+	GetByIDFromDB(ctx context.Context, id string) (*models.Product, error)
+	CreateInDB(ctx context.Context, product *models.Product) (string, error)
+	PutUpdateInDB(ctx context.Context, product *models.Product, id string) error
+	PatchUpdateInDB(ctx context.Context, product *models.Product, id string) error
+	DeleteFromDB(ctx context.Context, id string) error
+}
+
+type productStore struct {
 	db *sqlx.DB
 }
 
-func NewProductStore(db *sqlx.DB) interfaces.ProductStore {
-	return &ProductStore{
+func NewProductStore(db *sqlx.DB) ProductStore {
+	return &productStore{
 		db: db,
 	}
 }
 
-func (s *ProductStore) GetAllFromDB(ctx context.Context) ([]models.Product, error) {
+func (s *productStore) GetAllFromDB(ctx context.Context) ([]models.Product, error) {
 	var products []models.Product
 
 	// SQL query to get all products
@@ -45,7 +53,7 @@ func (s *ProductStore) GetAllFromDB(ctx context.Context) ([]models.Product, erro
 	return products, nil
 }
 
-func (s *ProductStore) GetByIDFromDB(ctx context.Context, productID string) (*models.Product, error) {
+func (s *productStore) GetByIDFromDB(ctx context.Context, productID string) (*models.Product, error) {
 	var product models.Product
 
 	// SQL query to get a product by id
@@ -77,7 +85,7 @@ func (s *ProductStore) GetByIDFromDB(ctx context.Context, productID string) (*mo
 	return &product, nil
 }
 
-func (s *ProductStore) CreateInDB(ctx context.Context, product *models.Product) (string, error) {
+func (s *productStore) CreateInDB(ctx context.Context, product *models.Product) (string, error) {
 	// Begin a transaction to ensure atomicity
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -132,7 +140,7 @@ func (s *ProductStore) CreateInDB(ctx context.Context, product *models.Product) 
 	return productID, nil
 }
 
-func (s *ProductStore) PutUpdateInDB(ctx context.Context, product *models.Product, productID string) error {
+func (s *productStore) PutUpdateInDB(ctx context.Context, product *models.Product, productID string) error {
 	// Begin a transaction to ensure atomicity
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -196,7 +204,7 @@ func (s *ProductStore) PutUpdateInDB(ctx context.Context, product *models.Produc
 	return nil
 }
 
-func (s *ProductStore) PatchUpdateInDB(ctx context.Context, product *models.Product, productID string) error {
+func (s *productStore) PatchUpdateInDB(ctx context.Context, product *models.Product, productID string) error {
 	// Begin a transaction to ensure atomicity
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -265,7 +273,7 @@ func (s *ProductStore) PatchUpdateInDB(ctx context.Context, product *models.Prod
 	return nil
 }
 
-func (s *ProductStore) DeleteFromDB(ctx context.Context, productID string) error {
+func (s *productStore) DeleteFromDB(ctx context.Context, productID string) error {
 	// Begin a transaction to ensure atomicity
 	tx, err := s.db.Beginx()
 	if err != nil {
