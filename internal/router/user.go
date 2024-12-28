@@ -20,6 +20,7 @@ func userRoutes(db *sqlx.DB, envConfig *config.EnvConfig) chi.Router {
 
 	// Routes
 	r.Post("/login", userHandler.Login)
+	r.Post("/signup", userHandler.Signup)
 
 	return r
 }

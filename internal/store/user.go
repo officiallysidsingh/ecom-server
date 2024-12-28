@@ -15,7 +15,7 @@ import (
 type UserStore interface {
 	GetByEmailFromDB(ctx context.Context, email string) (*models.User, error)
 	GetByIdFromDB(ctx context.Context, userID string) (*models.User, error)
-	CreateInDB(ctx context.Context, user *models.User) (string, error)
+	CreateInDB(ctx context.Context, user *models.SignupRequest) (string, error)
 }
 
 type userStore struct {
@@ -92,7 +92,7 @@ func (s *userStore) GetByIdFromDB(ctx context.Context, userID string) (*models.U
 	return &user, nil
 }
 
-func (s *userStore) CreateInDB(ctx context.Context, user *models.User) (string, error) {
+func (s *userStore) CreateInDB(ctx context.Context, user *models.SignupRequest) (string, error) {
 	// Begin a transaction to ensure atomicity
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *userStore) CreateInDB(ctx context.Context, user *models.User) (string, 
 	query := `
 		INSERT INTO users (user_id, name, email, password, role, created_at, updated_at)
 		VALUES (gen_random_uuid(), $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-		RETURNING email
+		RETURNING user_id
 	`
 
 	fields := []interface{}{
