@@ -155,3 +155,115 @@ func TestGetAllFromDB(t *testing.T) {
 		})
 	}
 }
+
+func TestGetByIDFromDB(t *testing.T) {
+	// Create a new mock database connection
+	mockDB, mock := setupMockDB(t)
+	defer mockDB.Close()
+
+	// Wrap mockDB connection with sqlx
+	db := sqlx.NewDb(mockDB, "postgres")
+	s := store.NewProductStore(db)
+	defer db.Close()
+
+	// Create test data
+	now := time.Now()
+	expectedProduct := models.Product{
+		ProductID:   "prod-1",
+		Name:        "Test Product 1",
+		Description: "Description 1",
+		Price:       99.99,
+		Stock:       10,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	// Write testcases
+	tests := []struct {
+		name      string
+		productID string
+		mock      func()
+		expectErr bool
+		expectRow *models.Product
+	}{
+		{
+			name:      "Successful fetch",
+			productID: expectedProduct.ProductID,
+			mock: func() {
+				product := expectedProduct
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+						"name",
+						"description",
+						"price",
+						"stock",
+						"created_at",
+						"updated_at",
+					},
+				).
+					AddRow(
+						product.ProductID,
+						product.Name,
+						product.Description,
+						product.Price,
+						product.Stock,
+						product.CreatedAt,
+						product.UpdatedAt,
+					)
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					SELECT product_id, name, description, price, stock, created_at, updated_at
+					FROM products
+					WHERE product_id = $1
+				`)).WithArgs(product.ProductID).WillReturnRows(rows)
+			},
+			expectErr: false,
+			expectRow: &expectedProduct,
+		},
+		{
+			name:      "No rows found",
+			productID: "nonexistent-id",
+			mock: func() {
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					SELECT product_id, name, description, price, stock, created_at, updated_at
+					FROM products
+					WHERE product_id = $1
+				`)).WithArgs("nonexistent-id").WillReturnError(sql.ErrNoRows)
+			},
+			expectErr: true,
+			expectRow: nil,
+		},
+		{
+			name:      "Query error",
+			productID: "prod-2",
+			mock: func() {
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					SELECT product_id, name, description, price, stock, created_at, updated_at
+					FROM products
+					WHERE product_id = $1
+				`)).WithArgs("prod-2").WillReturnError(errors.New("query error"))
+			},
+			expectErr: true,
+			expectRow: nil,
+		},
+	}
+
+	// Run testcases
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mock()
+			product, err := s.GetByIDFromDB(context.Background(), tt.productID)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				assert.Nil(t, product)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectRow, product)
+			}
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
