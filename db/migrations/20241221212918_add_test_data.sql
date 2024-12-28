@@ -5,9 +5,9 @@
 WITH inserted_users AS (
     INSERT INTO users (user_id, email, password, name, role, created_at, updated_at)
     VALUES
-        (gen_random_uuid(), 'user1@example.com', 'hashed_password1', 'User 1', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (gen_random_uuid(), 'user2@example.com', 'hashed_password2', 'User 2', 'user', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-        (gen_random_uuid(), 'user3@example.com', 'hashed_password3', 'User 3', 'user', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        (gen_random_uuid(), 'user1@example.com', '$2a$10$cSYbO9l6f.EzZzzz/Z7hOOPbQ9XQiIMyQMvZSLk10LIoY8c.xUbhC', 'User 1', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (gen_random_uuid(), 'user2@example.com', '$2a$10$JAjhZkZ0ajVT77JpN8a/E.kq7p9U8Xfwr29g2vbWLnfsS/KibHNoW', 'User 2', 'user', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+        (gen_random_uuid(), 'user3@example.com', '$2a$10$pb0EMw4Eyk4qDVRzYWIVZO6GeWP4jovFWU8PsmoqPxqjk25nLO92u', 'User 3', 'user', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     RETURNING user_id, email
 ),
 inserted_products AS (
