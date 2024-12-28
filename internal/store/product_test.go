@@ -267,3 +267,140 @@ func TestGetByIDFromDB(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateInDB(t *testing.T) {
+	// Create a new mock database connection
+	mockDB, mock := setupMockDB(t)
+	defer mockDB.Close()
+
+	// Wrap mockDB connection with sqlx
+	db := sqlx.NewDb(mockDB, "postgres")
+	s := store.NewProductStore(db)
+	defer db.Close()
+
+	// Create test data
+	product := models.Product{
+		Name:        "Test Product",
+		Description: "A test product",
+		Price:       100.0,
+		Stock:       50,
+	}
+
+	// Write testcases
+	tests := []struct {
+		name      string
+		product   *models.Product
+		mock      func()
+		expectErr bool
+		expectID  string
+	}{
+		{
+			name:    "Successful product creation",
+			product: &product,
+			mock: func() {
+				// Mock query for inserting the product
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow("new-product-id")
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					INSERT INTO products (product_id, name, description, price, stock, created_at, updated_at)
+					VALUES (gen_random_uuid(), $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					RETURNING product_id
+				`)).WithArgs(
+					product.Name,
+					product.Description,
+					product.Price,
+					product.Stock,
+				).WillReturnRows(rows)
+
+				mock.ExpectCommit()
+			},
+			expectErr: false,
+			expectID:  "new-product-id",
+		},
+		{
+			name:    "Error starting transaction",
+			product: &product,
+			mock: func() {
+				// Simulate error when starting transaction
+				mock.ExpectBegin().WillReturnError(errors.New("failed to start transaction"))
+			},
+			expectErr: true,
+			expectID:  "",
+		},
+		{
+			name:    "Query execution error",
+			product: &product,
+			mock: func() {
+				// Mock the begin and simulate query error
+				mock.ExpectBegin()
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					INSERT INTO products (product_id, name, description, price, stock, created_at, updated_at)
+					VALUES (gen_random_uuid(), $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					RETURNING product_id
+				`)).WithArgs(
+					product.Name,
+					product.Description,
+					product.Price,
+					product.Stock,
+				).WillReturnError(errors.New("query error"))
+
+				mock.ExpectRollback()
+			},
+			expectErr: true,
+			expectID:  "",
+		},
+		{
+			name:    "Error committing transaction",
+			product: &product,
+			mock: func() {
+				// Simulate a successful query but an error on commit
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow("new-product-id")
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					INSERT INTO products (product_id, name, description, price, stock, created_at, updated_at)
+					VALUES (gen_random_uuid(), $1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					RETURNING product_id
+				`)).WithArgs(
+					product.Name,
+					product.Description,
+					product.Price,
+					product.Stock,
+				).WillReturnRows(rows)
+
+				mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+			},
+			expectErr: true,
+			expectID:  "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mock()
+			productID, err := s.CreateInDB(context.Background(), tt.product)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+				assert.Equal(t, tt.expectID, productID)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectID, productID)
+			}
+
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
