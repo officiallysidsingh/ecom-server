@@ -93,9 +93,12 @@ func (s *productStore) CreateInDB(ctx context.Context, product *models.Product) 
 		return "", fmt.Errorf("failed to start database transaction: %w", err)
 	}
 
+	// For error handling in the deferred rollback
+	var txErr error
+
 	// Ensure transaction is properly rolled back in case of failure
 	defer func() {
-		if err != nil {
+		if txErr != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Error rolling back transaction: %v", rollbackErr)
 			}
@@ -118,21 +121,21 @@ func (s *productStore) CreateInDB(ctx context.Context, product *models.Product) 
 
 	// Execute the query and return the added product ID
 	var productID string
-	if err = utils.ExecGetTransactionQuery(
+	if txErr = utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&productID,
-	); err != nil {
-		log.Printf("Error adding product with Name %s to DB: %v", product.Name, err)
-		return "", err
+	); txErr != nil {
+		log.Printf("Error adding product with Name %s to DB: %v", product.Name, txErr)
+		return "", txErr
 	}
 
 	// Commit the transaction if update was successful
-	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction for product with ID %s: %v", productID, err)
-		return "", fmt.Errorf("failed to commit transaction: %w", err)
+	if txErr := tx.Commit(); txErr != nil {
+		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
+		return "", fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
 
 	// Log the success and return the updated product ID
@@ -148,9 +151,12 @@ func (s *productStore) PutUpdateInDB(ctx context.Context, product *models.Produc
 		return fmt.Errorf("failed to start database transaction: %w", err)
 	}
 
+	// For error handling in the deferred rollback
+	var txErr error
+
 	// Ensure transaction is properly rolled back in case of failure
 	defer func() {
-		if err != nil {
+		if txErr != nil {
 			// If error occurs, we rollback the transaction
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Error rolling back transaction: %v", rollbackErr)
@@ -174,29 +180,29 @@ func (s *productStore) PutUpdateInDB(ctx context.Context, product *models.Produc
 		productID,
 	}
 
-	// Execute the query and return the update product ID
+	// Execute the query and return the updated product ID
 	var updatedProductID string
-	if err := utils.ExecGetTransactionQuery(
+	if txErr = utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&updatedProductID,
-	); err != nil {
+	); txErr != nil {
 		// If no rows affected (Product Not Found)
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(txErr, sql.ErrNoRows) {
 			log.Printf("Product with ID %s not found", productID)
 			return fmt.Errorf("product with ID %s not found", productID)
 		}
 		// General error
-		log.Printf("Error updating product in DB: %v", err)
-		return fmt.Errorf("failed to update product with ID %s: %w", productID, err)
+		log.Printf("Error updating product in DB: %v", txErr)
+		return fmt.Errorf("failed to update product with ID %s: %w", productID, txErr)
 	}
 
 	// Commit the transaction if update was successful
-	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction for product with ID %s: %v", productID, err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if txErr = tx.Commit(); txErr != nil {
+		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
+		return fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
 
 	// Log the success and return the updated product ID
@@ -212,9 +218,12 @@ func (s *productStore) PatchUpdateInDB(ctx context.Context, product *models.Prod
 		return fmt.Errorf("failed to start database transaction: %w", err)
 	}
 
+	// For error handling in the deferred rollback
+	var txErr error
+
 	// Ensure transaction is properly rolled back in case of failure
 	defer func() {
-		if err != nil {
+		if txErr != nil {
 			// If error occurs, we rollback the transaction
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Error rolling back transaction: %v", rollbackErr)
@@ -245,27 +254,27 @@ func (s *productStore) PatchUpdateInDB(ctx context.Context, product *models.Prod
 
 	// Execute the query and return the updated product ID
 	var updatedProductID string
-	if err := utils.ExecGetTransactionQuery(
+	if txErr := utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&updatedProductID,
-	); err != nil {
+	); txErr != nil {
 		// If no rows affected (Product Not Found)
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(txErr, sql.ErrNoRows) {
 			log.Printf("Product with ID %s not found", productID)
 			return fmt.Errorf("product with ID %s not found", productID)
 		}
 		// General error
-		log.Printf("Error updating product in DB: %v", err)
-		return fmt.Errorf("failed to update product with ID %s: %w", productID, err)
+		log.Printf("Error updating product in DB: %v", txErr)
+		return fmt.Errorf("failed to update product with ID %s: %w", productID, txErr)
 	}
 
 	// Commit the transaction if update was successful
-	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction for product with ID %s: %v", productID, err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if txErr := tx.Commit(); txErr != nil {
+		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
+		return fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
 
 	// Log the success and return the updated product ID
@@ -281,9 +290,12 @@ func (s *productStore) DeleteFromDB(ctx context.Context, productID string) error
 		return fmt.Errorf("failed to start database transaction: %w", err)
 	}
 
+	// For error handling in the deferred rollback
+	var txErr error
+
 	// Ensure transaction is properly rolled back in case of failure
 	defer func() {
-		if err != nil {
+		if txErr != nil {
 			// If error occurs, we rollback the transaction
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				log.Printf("Error rolling back transaction: %v", rollbackErr)
@@ -303,27 +315,27 @@ func (s *productStore) DeleteFromDB(ctx context.Context, productID string) error
 
 	// Execute the query and return the deleted product ID
 	var deletedProductID string
-	if err := utils.ExecGetTransactionQuery(
+	if txErr := utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&deletedProductID,
-	); err != nil {
+	); txErr != nil {
 		// If no rows affected (Product Not Found)
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(txErr, sql.ErrNoRows) {
 			log.Printf("Product with ID %s not found", productID)
 			return fmt.Errorf("product with ID %s not found", productID)
 		}
 		// General error
-		log.Printf("Error deleting product in DB: %v", err)
-		return fmt.Errorf("failed to delete product with ID %s: %w", productID, err)
+		log.Printf("Error deleting product in DB: %v", txErr)
+		return fmt.Errorf("failed to delete product with ID %s: %w", productID, txErr)
 	}
 
 	// Commit the transaction if delete was successful
-	if err := tx.Commit(); err != nil {
-		log.Printf("Error committing transaction for product with ID %s: %v", productID, err)
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if txErr := tx.Commit(); txErr != nil {
+		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
+		return fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
 
 	// Log the success and return the deleted product ID
