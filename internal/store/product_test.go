@@ -202,16 +202,15 @@ func TestGetByIDFromDB(t *testing.T) {
 						"created_at",
 						"updated_at",
 					},
-				).
-					AddRow(
-						product.ProductID,
-						product.Name,
-						product.Description,
-						product.Price,
-						product.Stock,
-						product.CreatedAt,
-						product.UpdatedAt,
-					)
+				).AddRow(
+					product.ProductID,
+					product.Name,
+					product.Description,
+					product.Price,
+					product.Stock,
+					product.CreatedAt,
+					product.UpdatedAt,
+				)
 
 				mock.ExpectQuery(regexp.QuoteMeta(`
 					SELECT product_id, name, description, price, stock, created_at, updated_at
@@ -793,6 +792,134 @@ func TestPatchUpdateInDB(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock()
 			err := s.PatchUpdateInDB(context.Background(), tt.product, tt.productID)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestDeleteFromDB(t *testing.T) {
+	// Create a new mock database connection
+	mockDB, mock := setupMockDB(t)
+	defer mockDB.Close()
+
+	// Wrap mockDB connection with sqlx
+	db := sqlx.NewDb(mockDB, "postgres")
+	s := store.NewProductStore(db)
+	defer db.Close()
+
+	// Create test data
+	productID := "existing-product-id"
+
+	// Write testcases
+	tests := []struct {
+		name      string
+		productID string
+		mock      func()
+		expectErr bool
+	}{
+		{
+			name:      "Successful delete",
+			productID: productID,
+			mock: func() {
+				// Mock transaction and query for updating product
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow(productID)
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					DELETE FROM products
+					WHERE product_id = $1
+					RETURNING product_id
+				`)).WithArgs(productID).WillReturnRows(rows)
+
+				mock.ExpectCommit()
+			},
+			expectErr: false,
+		},
+		{
+			name:      "Error starting transaction",
+			productID: productID,
+			mock: func() {
+				// Simulate an error when starting the transaction
+				mock.ExpectBegin().WillReturnError(errors.New("failed to start transaction"))
+			},
+			expectErr: true,
+		},
+		{
+			name:      "Product not found (No rows affected)",
+			productID: "nonexistent-id",
+			mock: func() {
+				// Simulate an error when no rows are affected by the delete
+				mock.ExpectBegin()
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					DELETE FROM products
+					WHERE product_id = $1
+					RETURNING product_id
+				`)).WithArgs("nonexistent-id").WillReturnError(sql.ErrNoRows)
+
+				mock.ExpectRollback()
+			},
+			expectErr: true,
+		},
+		{
+			name:      "Query execution error",
+			productID: productID,
+			mock: func() {
+				// Simulate a query error
+				mock.ExpectBegin()
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					DELETE FROM products
+					WHERE product_id = $1
+					RETURNING product_id
+				`)).WithArgs(productID).WillReturnError(errors.New("query error"))
+
+				mock.ExpectRollback()
+			},
+			expectErr: true,
+		},
+		{
+			name:      "Error committing transaction",
+			productID: productID,
+			mock: func() {
+				// Simulate a successful query but an error on commit
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow(productID)
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					DELETE FROM products
+					WHERE product_id = $1
+					RETURNING product_id
+				`)).WithArgs(productID).WillReturnRows(rows)
+
+				mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+			},
+			expectErr: true,
+		},
+	}
+
+	// Run testcases
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mock()
+			err := s.DeleteFromDB(context.Background(), tt.productID)
 
 			if tt.expectErr {
 				assert.Error(t, err)

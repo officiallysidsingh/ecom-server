@@ -121,19 +121,21 @@ func (s *productStore) CreateInDB(ctx context.Context, product *models.Product) 
 
 	// Execute the query and return the added product ID
 	var productID string
-	if txErr = utils.ExecGetTransactionQuery(
+	txErr = utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&productID,
-	); txErr != nil {
+	)
+	if txErr != nil {
 		log.Printf("Error adding product with Name %s to DB: %v", product.Name, txErr)
 		return "", txErr
 	}
 
 	// Commit the transaction if update was successful
-	if txErr := tx.Commit(); txErr != nil {
+	txErr = tx.Commit()
+	if txErr != nil {
 		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
 		return "", fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
@@ -182,13 +184,14 @@ func (s *productStore) PutUpdateInDB(ctx context.Context, product *models.Produc
 
 	// Execute the query and return the updated product ID
 	var updatedProductID string
-	if txErr = utils.ExecGetTransactionQuery(
+	txErr = utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&updatedProductID,
-	); txErr != nil {
+	)
+	if txErr != nil {
 		// If no rows affected (Product Not Found)
 		if errors.Is(txErr, sql.ErrNoRows) {
 			log.Printf("Product with ID %s not found", productID)
@@ -200,7 +203,8 @@ func (s *productStore) PutUpdateInDB(ctx context.Context, product *models.Produc
 	}
 
 	// Commit the transaction if update was successful
-	if txErr = tx.Commit(); txErr != nil {
+	txErr = tx.Commit()
+	if txErr != nil {
 		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
 		return fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
@@ -319,13 +323,15 @@ func (s *productStore) DeleteFromDB(ctx context.Context, productID string) error
 
 	// Execute the query and return the deleted product ID
 	var deletedProductID string
-	if txErr := utils.ExecGetTransactionQuery(
+	txErr = utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&deletedProductID,
-	); txErr != nil {
+	)
+
+	if txErr != nil {
 		// If no rows affected (Product Not Found)
 		if errors.Is(txErr, sql.ErrNoRows) {
 			log.Printf("Product with ID %s not found", productID)
@@ -337,7 +343,8 @@ func (s *productStore) DeleteFromDB(ctx context.Context, productID string) error
 	}
 
 	// Commit the transaction if delete was successful
-	if txErr := tx.Commit(); txErr != nil {
+	txErr = tx.Commit()
+	if txErr != nil {
 		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
 		return fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
