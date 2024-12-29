@@ -434,7 +434,7 @@ func TestPutUpdateInDB(t *testing.T) {
 		expectErr bool
 	}{
 		{
-			name:      "Successful product update",
+			name:      "Successful put product update",
 			product:   &product,
 			productID: productID,
 			mock: func() {
@@ -562,6 +562,237 @@ func TestPutUpdateInDB(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.mock()
 			err := s.PutUpdateInDB(context.Background(), tt.product, tt.productID)
+
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestPatchUpdateInDB(t *testing.T) {
+	// Create a new mock database connection
+	mockDB, mock := setupMockDB(t)
+	defer mockDB.Close()
+
+	// Wrap mockDB connection with sqlx
+	db := sqlx.NewDb(mockDB, "postgres")
+	s := store.NewProductStore(db)
+	defer db.Close()
+
+	// Create test data
+	productID := "existing-product-id"
+
+	product_all_fields := models.Product{
+		Name:        "Updated Product",
+		Description: "Updated description",
+		Price:       150.0,
+		Stock:       30,
+	}
+
+	product_missing_fields := models.Product{
+		Price: 100.0,
+		Stock: 50,
+	}
+
+	// Write testcases
+	tests := []struct {
+		name      string
+		product   *models.Product
+		productID string
+		mock      func()
+		expectErr bool
+	}{
+		{
+			name:      "Successful patch update with all fields",
+			product:   &product_all_fields,
+			productID: productID,
+			mock: func() {
+				// Mock transaction and query for updating product
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow(productID)
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					UPDATE PRODUCTS
+					SET
+						name = COALESCE(NULLIF($1, ''), name),
+						description = COALESCE(NULLIF($2, ''), description),
+						price = COALESCE(NULLIF($3, 0), price),
+						stock = COALESCE(NULLIF($4, 0), stock),
+						updated_at = CURRENT_TIMESTAMP
+					WHERE product_id = $5
+					RETURNING product_id
+				`)).WithArgs(
+					product_all_fields.Name,
+					product_all_fields.Description,
+					product_all_fields.Price,
+					product_all_fields.Stock,
+					productID,
+				).WillReturnRows(rows)
+
+				mock.ExpectCommit()
+			},
+			expectErr: false,
+		},
+		{
+			name:      "Successful patch update with empty Name and Description fields",
+			product:   &product_missing_fields,
+			productID: productID,
+			mock: func() {
+				// Mock transaction and query for updating product
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow(productID)
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					UPDATE PRODUCTS
+					SET
+						name = COALESCE(NULLIF($1, ''), name),
+						description = COALESCE(NULLIF($2, ''), description),
+						price = COALESCE(NULLIF($3, 0), price),
+						stock = COALESCE(NULLIF($4, 0), stock),
+						updated_at = CURRENT_TIMESTAMP
+					WHERE product_id = $5
+					RETURNING product_id
+				`)).WithArgs(
+					"",
+					"",
+					product_missing_fields.Price,
+					product_missing_fields.Stock,
+					productID,
+				).WillReturnRows(rows)
+
+				mock.ExpectCommit()
+			},
+
+			expectErr: false,
+		},
+		{
+			name:      "Error starting transaction",
+			product:   &product_all_fields,
+			productID: productID,
+			mock: func() {
+				// Simulate an error when starting the transaction
+				mock.ExpectBegin().WillReturnError(errors.New("failed to start transaction"))
+			},
+			expectErr: true,
+		},
+		{
+			name:      "Product not found (No rows affected)",
+			product:   &product_all_fields,
+			productID: "nonexistent-id",
+			mock: func() {
+				// Simulate an error when no rows are affected by the update
+				mock.ExpectBegin()
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					UPDATE PRODUCTS
+					SET
+						name = COALESCE(NULLIF($1, ''), name),
+						description = COALESCE(NULLIF($2, ''), description),
+						price = COALESCE(NULLIF($3, 0), price),
+						stock = COALESCE(NULLIF($4, 0), stock),
+						updated_at = CURRENT_TIMESTAMP
+					WHERE product_id = $5
+					RETURNING product_id
+				`)).WithArgs(
+					product_all_fields.Name,
+					product_all_fields.Description,
+					product_all_fields.Price,
+					product_all_fields.Stock,
+					"nonexistent-id",
+				)
+
+				mock.ExpectRollback()
+			},
+			expectErr: true,
+		},
+		{
+			name:      "Query execution error",
+			product:   &product_all_fields,
+			productID: productID,
+			mock: func() {
+				// Simulate a query error
+				mock.ExpectBegin()
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					UPDATE PRODUCTS
+					SET
+						name = COALESCE(NULLIF($1, ''), name),
+						description = COALESCE(NULLIF($2, ''), description),
+						price = COALESCE(NULLIF($3, 0), price),
+						stock = COALESCE(NULLIF($4, 0), stock),
+						updated_at = CURRENT_TIMESTAMP
+					WHERE product_id = $5
+					RETURNING product_id
+				`)).WithArgs(
+					product_all_fields.Name,
+					product_all_fields.Description,
+					product_all_fields.Price,
+					product_all_fields.Stock,
+					productID,
+				).WillReturnError(errors.New("query error"))
+
+				mock.ExpectRollback()
+			},
+			expectErr: true,
+		},
+		{
+			name:      "Error committing transaction",
+			product:   &product_all_fields,
+			productID: productID,
+			mock: func() {
+				// Simulate a successful query but an error on commit
+				mock.ExpectBegin()
+
+				rows := sqlmock.NewRows(
+					[]string{
+						"product_id",
+					},
+				).AddRow(productID)
+
+				mock.ExpectQuery(regexp.QuoteMeta(`
+					UPDATE PRODUCTS
+					SET
+						name = COALESCE(NULLIF($1, ''), name),
+						description = COALESCE(NULLIF($2, ''), description),
+						price = COALESCE(NULLIF($3, 0), price),
+						stock = COALESCE(NULLIF($4, 0), stock),
+						updated_at = CURRENT_TIMESTAMP
+					WHERE product_id = $5
+					RETURNING product_id
+				`)).WithArgs(
+					product_all_fields.Name,
+					product_all_fields.Description,
+					product_all_fields.Price,
+					product_all_fields.Stock,
+					productID,
+				).WillReturnRows(rows)
+
+				mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+			},
+			expectErr: true,
+		},
+	}
+
+	// Run testcases
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.mock()
+			err := s.PatchUpdateInDB(context.Background(), tt.product, tt.productID)
 
 			if tt.expectErr {
 				assert.Error(t, err)

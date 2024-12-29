@@ -254,25 +254,29 @@ func (s *productStore) PatchUpdateInDB(ctx context.Context, product *models.Prod
 
 	// Execute the query and return the updated product ID
 	var updatedProductID string
-	if txErr := utils.ExecGetTransactionQuery(
+	txErr = utils.ExecGetTransactionQuery(
 		s.db,
 		tx,
 		query,
 		fields,
 		&updatedProductID,
-	); txErr != nil {
-		// If no rows affected (Product Not Found)
-		if errors.Is(txErr, sql.ErrNoRows) {
-			log.Printf("Product with ID %s not found", productID)
-			return fmt.Errorf("product with ID %s not found", productID)
-		}
-		// General error
+	)
+
+	// If no rows affected (Product Not Found)
+	if errors.Is(txErr, sql.ErrNoRows) {
+		log.Printf("Product with ID %s not found", productID)
+		return fmt.Errorf("product with ID %s not found", productID)
+	}
+
+	// General error handling if the query failed
+	if txErr != nil {
 		log.Printf("Error updating product in DB: %v", txErr)
 		return fmt.Errorf("failed to update product with ID %s: %w", productID, txErr)
 	}
 
 	// Commit the transaction if update was successful
-	if txErr := tx.Commit(); txErr != nil {
+	txErr = tx.Commit()
+	if txErr != nil {
 		log.Printf("Error committing transaction for product with ID %s: %v", productID, txErr)
 		return fmt.Errorf("failed to commit transaction: %w", txErr)
 	}
