@@ -21,19 +21,19 @@ inserted_products AS (
     RETURNING product_id, name
 ),
 inserted_orders AS (
-    INSERT INTO orders (order_id, user_id, order_date, total_price, status, address, created_at, updated_at)
+    INSERT INTO orders (order_id, user_id, payment_method, tax_price, shipping_price, total_price, created_at, updated_at)
     SELECT
-        gen_random_uuid(), user_id, CURRENT_TIMESTAMP, 1499.98, 'Pending', '123 Main St, Cityville, NY', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        gen_random_uuid(), user_id, 'Cash On Delivery', 149.99, 50.00, 1699.98, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM inserted_users
     WHERE email = 'user1@example.com'
     UNION ALL
     SELECT
-        gen_random_uuid(), user_id, CURRENT_TIMESTAMP, 799.99, 'Shipped', '456 Oak Ave, Townsville, TX', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        gen_random_uuid(), user_id, 'Credit Card', 79.99, 30.00, 909.99, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM inserted_users
     WHERE email = 'user2@example.com'
     UNION ALL
     SELECT
-        gen_random_uuid(), user_id, CURRENT_TIMESTAMP, 2499.96, 'Delivered', '789 Pine Blvd, Villagetown, CA', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        gen_random_uuid(), user_id, 'PayPal', 249.99, 70.00, 2819.96, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
     FROM inserted_users
     WHERE email = 'user3@example.com'
     RETURNING order_id, user_id
@@ -71,6 +71,7 @@ inserted_order_items AS (
     WHERE o.order_id IN (SELECT order_id FROM inserted_orders WHERE user_id IN (SELECT user_id FROM inserted_users WHERE email = 'user3@example.com'))
     RETURNING order_item_id, order_id, product_id
 )
+
 -- Execute the insertion of order items
 SELECT * FROM inserted_order_items;
 
