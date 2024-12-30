@@ -34,5 +34,6 @@ func setupRoutes(db *sqlx.DB, envConfig *config.EnvConfig, r *chi.Mux) {
 
 	// Sub-Routers
 	r.Mount("/products", productRoutes(db))
+	r.Mount("/orders", orderRoutes(db, envConfig))
 	r.Mount("/user", userRoutes(db, envConfig))
 }
