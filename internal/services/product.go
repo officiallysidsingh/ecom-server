@@ -16,11 +16,11 @@ var (
 
 type ProductService interface {
 	GetAll(ctx context.Context) ([]models.Product, error)
-	GetByID(ctx context.Context, id string) (*models.Product, error)
+	GetByID(ctx context.Context, productID string) (*models.Product, error)
 	Create(ctx context.Context, product *models.Product) (string, error)
-	PutUpdate(ctx context.Context, product *models.Product, id string) error
-	PatchUpdate(ctx context.Context, product *models.Product, id string) error
-	Delete(ctx context.Context, id string) error
+	PutUpdate(ctx context.Context, product *models.Product, productID string) error
+	PatchUpdate(ctx context.Context, product *models.Product, productID string) error
+	Delete(ctx context.Context, productID string) error
 }
 
 type productService struct {
@@ -37,8 +37,8 @@ func (s *productService) GetAll(ctx context.Context) ([]models.Product, error) {
 	return s.store.GetAllFromDB(ctx)
 }
 
-func (s *productService) GetByID(ctx context.Context, id string) (*models.Product, error) {
-	return s.store.GetByIDFromDB(ctx, id)
+func (s *productService) GetByID(ctx context.Context, productID string) (*models.Product, error) {
+	return s.store.GetByIDFromDB(ctx, productID)
 }
 
 func (s *productService) Create(ctx context.Context, product *models.Product) (string, error) {
@@ -52,7 +52,7 @@ func (s *productService) Create(ctx context.Context, product *models.Product) (s
 	return s.store.CreateInDB(ctx, product)
 }
 
-func (s *productService) PutUpdate(ctx context.Context, product *models.Product, id string) error {
+func (s *productService) PutUpdate(ctx context.Context, product *models.Product, productID string) error {
 	if product.Price <= 0 {
 		return ErrInvalidPrice
 	}
@@ -60,12 +60,12 @@ func (s *productService) PutUpdate(ctx context.Context, product *models.Product,
 		return ErrInvalidStock
 	}
 
-	_, err := s.store.GetByIDFromDB(ctx, id)
+	_, err := s.store.GetByIDFromDB(ctx, productID)
 	if err != nil {
 		return err
 	}
 
-	err = s.store.PutUpdateInDB(ctx, product, id)
+	err = s.store.PutUpdateInDB(ctx, product, productID)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (s *productService) PutUpdate(ctx context.Context, product *models.Product,
 	return nil
 }
 
-func (s *productService) PatchUpdate(ctx context.Context, product *models.Product, id string) error {
+func (s *productService) PatchUpdate(ctx context.Context, product *models.Product, productID string) error {
 	if product.Price != 0 && product.Price <= 0 {
 		return ErrInvalidPrice
 	}
@@ -81,12 +81,12 @@ func (s *productService) PatchUpdate(ctx context.Context, product *models.Produc
 		return ErrInvalidStock
 	}
 
-	_, err := s.store.GetByIDFromDB(ctx, id)
+	_, err := s.store.GetByIDFromDB(ctx, productID)
 	if err != nil {
 		return err
 	}
 
-	err = s.store.PatchUpdateInDB(ctx, product, id)
+	err = s.store.PatchUpdateInDB(ctx, product, productID)
 	if err != nil {
 		return err
 	}
@@ -94,15 +94,15 @@ func (s *productService) PatchUpdate(ctx context.Context, product *models.Produc
 	return nil
 }
 
-func (s *productService) Delete(ctx context.Context, id string) error {
-	_, err := s.store.GetByIDFromDB(ctx, id)
+func (s *productService) Delete(ctx context.Context, productID string) error {
+	_, err := s.store.GetByIDFromDB(ctx, productID)
 	if err != nil {
 		return err
 	}
 
-	err = s.store.DeleteFromDB(ctx, id)
+	err = s.store.DeleteFromDB(ctx, productID)
 	if err != nil {
-		return fmt.Errorf("failed to delete product with ID %s: %v", id, err)
+		return fmt.Errorf("failed to delete product with ID %s: %v", productID, err)
 	}
 
 	return nil

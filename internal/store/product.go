@@ -14,11 +14,11 @@ import (
 
 type ProductStore interface {
 	GetAllFromDB(ctx context.Context) ([]models.Product, error)
-	GetByIDFromDB(ctx context.Context, id string) (*models.Product, error)
+	GetByIDFromDB(ctx context.Context, productID string) (*models.Product, error)
 	CreateInDB(ctx context.Context, product *models.Product) (string, error)
-	PutUpdateInDB(ctx context.Context, product *models.Product, id string) error
-	PatchUpdateInDB(ctx context.Context, product *models.Product, id string) error
-	DeleteFromDB(ctx context.Context, id string) error
+	PutUpdateInDB(ctx context.Context, product *models.Product, productID string) error
+	PatchUpdateInDB(ctx context.Context, product *models.Product, productID string) error
+	DeleteFromDB(ctx context.Context, productID string) error
 }
 
 type productStore struct {
