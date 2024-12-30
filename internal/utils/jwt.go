@@ -7,13 +7,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/officiallysidsingh/ecom-server/internal/config"
+	"github.com/officiallysidsingh/ecom-server/internal/models"
 )
-
-type Claims struct {
-	UserID string `json:"user_id"`
-	Role   string `json:"role"`
-	jwt.RegisteredClaims
-}
 
 var (
 	ErrGeneratingToken = errors.New("error generating token")
@@ -24,7 +19,7 @@ func GenerateJWT(userID string, role string, config config.JWTConfig) (string, e
 	now := time.Now()
 
 	// Create claims with user data and standard claims
-	claims := Claims{
+	claims := models.Claims{
 		UserID: userID,
 		Role:   role,
 		RegisteredClaims: jwt.RegisteredClaims{
